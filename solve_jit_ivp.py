@@ -5,12 +5,16 @@ from matplotlib import pyplot as plt
 
 from paci_jit_generator import wrapper
 
-import pdb
-
 from csv import writer
 from io import StringIO
 
 from jitcode import jitcode, y
+
+import pdb
+
+import os
+os.environ["CC"] = "gcc"
+
 
 Y_names = ['Vm', 'Ca_SR', 'Cai', 'g', 'd', 'f1', 'f2',
            'fCa', 'Xr1', 'Xr2', 'Xs', 'h', 'j', 'm',
@@ -64,7 +68,10 @@ output = StringIO()
 csv_writer = writer(output)
 tf = 10
 
+
+print("hello")
 # Don't know how to implement this
+pdb.set_trace()
 while ODE.successful() and ODE.t < tf:
     ODE.integrate(tf, step=True)
     csv_writer.writerow([ODE.t, ODE.y])
