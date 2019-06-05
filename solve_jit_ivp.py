@@ -55,23 +55,21 @@ IKsRedMed = 1
 
 ## This variable holds my system of Eqs
 system_of_ODEs = wrapper()
-
 ODE = jitcode(system_of_ODEs)
-ODE.set_integrator('dopri5')
+
+ODE.set_integrator('vode', max_step=1e-3)
 ODE.set_initial_value(Y0)
 
-times = np.arange(0, 40, .001)
-data = np.zeros((len(times),23))
-
-i = 0
-for t in times:
-  data[i,:] = ODE.integrate(t)
-  i+=1
 output = StringIO()
 csv_writer = writer(output)
+tf = 10
 
-plt.plot(times, data[:,0])
-plt.show()
+# Don't know how to implement this
+while ODE.successful() and ODE.t < t1:
+    ODE.integrate(t1, step=True)
+    csv_writer.writerow([ODE.t, ODE.y])
+
+
 
 # np.savetxt("../paci-2018-matlab/pythonSolutionJit2.csv", data, delimiter=",")
 # np.savetxt("../paci-2018-matlab/pySolutionTimeJit2.csv", times, delimiter=",")
