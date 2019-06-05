@@ -56,10 +56,6 @@ IKsRedMed = 1
 ## This variable holds my system of Eqs
 system_of_ODEs = wrapper()
 
-import time
-
-tic = time.time()
-
 ODE = jitcode(system_of_ODEs)
 ODE.set_integrator('dopri5')
 ODE.set_initial_value(Y0)
@@ -71,7 +67,6 @@ i = 0
 for t in times:
   data[i,:] = ODE.integrate(t)
   i+=1
-print(time.time()-tic)
 output = StringIO()
 csv_writer = writer(output)
 
