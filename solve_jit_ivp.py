@@ -56,7 +56,7 @@ IKsRedMed = 1
 ## This variable holds my system of Eqs
 system_of_ODEs = wrapper()
 ODE = jitcode(system_of_ODEs)
-
+pdb.set_trace()
 ODE.set_integrator('vode', max_step=1e-3)
 ODE.set_initial_value(Y0)
 
@@ -65,11 +65,9 @@ csv_writer = writer(output)
 tf = 10
 
 # Don't know how to implement this
-while ODE.successful() and ODE.t < t1:
-    ODE.integrate(t1, step=True)
+while ODE.successful() and ODE.t < tf:
+    ODE.integrate(tf, step=True)
     csv_writer.writerow([ODE.t, ODE.y])
 
-
-
-# np.savetxt("../paci-2018-matlab/pythonSolutionJit2.csv", data, delimiter=",")
-# np.savetxt("../paci-2018-matlab/pySolutionTimeJit2.csv", times, delimiter=",")
+output.seek(0)
+sol = pd.read_csv(output)
