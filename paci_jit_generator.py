@@ -5,6 +5,16 @@ from jitcode import jitcode, y
 import symengine
 import mpmath
 
+# Conditionals
+# tau_h   = 1.5*1.6947/1000.0
+# alpha_j = 0.0
+# beta_j  = ((0.6*exp((0.057)*Y[0]*1000)/(1+exp(-0.1*(Y[0]*1000+32)))))
+# constf1 = 1.0
+# constfCa = 1.0
+# RyRtauact = 0.1*18.75e-3   #s
+# RyRtauinact = 87.5e-3      #s
+# i_stim = 0.0
+
 def wrapper():
     tDrugApplication = 10000
     INaFRedMed = 1
@@ -343,13 +353,5 @@ def Paci2018(time, tDrugApplication, INaFRedMed,
 # 3 - during each loop, find dY/dt, given the perturbation
 # 4 - find the change in Y as a function of the change in the perturbation
 
-# Conditionals
-# tau_h   = 1.5*1.6947/1000.0
-# alpha_j = 0.0
-# beta_j  = ((0.6*exp((0.057)*Y[0]*1000)/(1+exp(-0.1*(Y[0]*1000+32)))))
-# constf1 = 1.0
-# constfCa = 1.0
-# RyRtauact = 0.1*18.75e-3   #s
-# RyRtauinact = 87.5e-3      #s
-# i_stim = 0.0
+
 
