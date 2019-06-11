@@ -1,19 +1,8 @@
 from math import log, sqrt, floor
-from numpy import exp
 import numpy as np
 from jitcode import jitcode, y
 import symengine
 import mpmath
-
-# Conditionals
-# tau_h   = 1.5*1.6947/1000.0
-# alpha_j = 0.0
-# beta_j  = ((0.6*exp((0.057)*Y[0]*1000)/(1+exp(-0.1*(Y[0]*1000+32)))))
-# constf1 = 1.0
-# constfCa = 1.0
-# RyRtauact = 0.1*18.75e-3   #s
-# RyRtauinact = 87.5e-3      #s
-# i_stim = 0.0
 
 def wrapper():
     tDrugApplication = 10000
@@ -21,34 +10,22 @@ def wrapper():
     ICaLRedMed = 1
     IKrRedMed = 1
     IKsRedMed = 1
-    time = 10000
 
-    return Paci2018(time, tDrugApplication, INaFRedMed,
+    return Paci2018(tDrugApplication, INaFRedMed,
              ICaLRedMed, IKrRedMed, IKsRedMed)
 
-def sigmoid_generator(t_step, shift, sign):
-    y = sign*1/(1+symengine.exp(-(t_step-shift)*10000))
-    return y
 
-def Paci2018(time, tDrugApplication, INaFRedMed,
+
+
+def sigmoid_generator(t_step, shift, sign):
+    y = sign*1/(1+symengine.exp(-(t_step-shift)*100))
+    return y
+    # return 1
+
+def Paci2018(tDrugApplication, INaFRedMed,
              ICaLRedMed, IKrRedMed, IKsRedMed):
     dY = [None]*23
-
-    '''
-    Parameters from optimizer   
-      VmaxUp    = param(1)
-      g_irel_max  = param(2)
-      RyRa1         = param(3)
-      RyRa2         = param(4)
-      RyRahalf      = param(5)
-      RyRohalf      = param(6)
-      RyRchalf      = param(7)
-      kNaCa         = param(8)
-      PNaK          = param(9)
-      Kup     = param(10)
-      V_leak    = param(11)
-      alpha         = param(12)
-    '''
+    
     VmaxUp = 0.5113      # millimolar_per_second (in calcium_dynamics)
     g_irel_max = 62.5434 # millimolar_per_second (in calcium_dynamics)
     RyRa1 = 0.05354      # uM
@@ -96,8 +73,9 @@ def Paci2018(time, tDrugApplication, INaFRedMed,
 
     ## INa
     g_Na        = 3671.2302   # S_per_F (in i_Na)
-    i_Na        = (sigmoid_generator(time, tDrugApplication, -1)*1+sigmoid_generator(time, tDrugApplication, 1)) *g_Na*y(13)**3.0*y(11)*y(12)*(y(0)-E_Na)
-
+    drug_no_drug_na = [g_Na*y(13)**3.0*y(11)*y(12)*(y(0)-E_Na), INaFRedMed * g_Na*y(13)**3.0*y(11)*y(12)*(y(0)-E_Na)]
+    i_Na        = drug_no_drug_na[0]
+    
     h_inf       = 1.0/symengine.sqrt(1.0+symengine.exp((y(0)*1000.0+72.1)/5.7))
     alpha_h     = 0.057*symengine.exp(-(y(0)*1000.0+80.0)/6.8)
     beta_h      = 2.7*symengine.exp(0.079*y(0)*1000.0)+3.1*10.0**5.0*symengine.exp(0.3485*y(0)*1000.0)
@@ -156,7 +134,9 @@ def Paci2018(time, tDrugApplication, INaFRedMed,
 
     ## ICaL
     g_CaL       = 8.635702e-5   # metre_cube_per_F_per_s (in i_CaL)
-    i_CaL       = (sigmoid_generator(time, tDrugApplication, -1)*1+sigmoid_generator(time, tDrugApplication, 1)*ICaLRedMed)*g_CaL*4.0*y(0)*F**2.0/(R*T)*(y(2)*symengine.exp(2.0*y(0)*F/(R*T))-0.341*Cao)/(symengine.exp(2.0*y(0)*F/(R*T))-1.0)*y(4)*y(5)*y(6)*y(7)
+    drug_no_drug_CaL       = [g_CaL*4.0*y(0)*F**2.0/(R*T)*(y(2)*symengine.exp(2.0*y(0)*F/(R*T))-0.341*Cao)/(symengine.exp(2.0*y(0)*F/(R*T))-1.0)*y(4)*y(5)*y(6)*y(7),
+                   ICaLRedMed * g_CaL*4.0*y(0)*F**2.0/(R*T)*(y(2)*symengine.exp(2.0*y(0)*F/(R*T))-0.341*Cao)/(symengine.exp(2.0*y(0)*F/(R*T))-1.0)*y(4)*y(5)*y(6)*y(7)]
+    i_CaL = drug_no_drug_CaL[0]
 
     d_infinity  = 1.0/(1.0+symengine.exp(-(y(0)*1000.0+9.1)/7.0))
     alpha_d     = 0.25+1.4/(1.0+symengine.exp((-y(0)*1000.0-35.0)/13.0))
@@ -199,7 +179,9 @@ def Paci2018(time, tDrugApplication, INaFRedMed,
 
     ## IKs
     g_Ks        = 2.041   # S_per_F (in i_Ks)
-    i_Ks        = (sigmoid_generator(time, tDrugApplication, -1)*1+sigmoid_generator(time, tDrugApplication, 1)*IKsRedMed)*g_Ks*(y(0)-E_Ks)*y(10)**2.0*(1.0+0.6/(1.0+(3.8*0.00001/y(2))**1.4))
+    drug_no_drug_Ks = [g_Ks*(y(0)-E_Ks)*y(10)**2.0*(1.0+0.6/(1.0+(3.8*0.00001/y(2))**1.4)),
+                       IKsRedMed*g_Ks*(y(0)-E_Ks)*y(10)**2.0*(1.0+0.6/(1.0+(3.8*0.00001/y(2))**1.4))]
+    i_Ks = drug_no_drug_Ks[0]
 
     Xs_infinity = 1.0/(1.0+symengine.exp((-y(0)*1000.0-20.0)/16.0))
     alpha_Xs    = 1100.0/symengine.sqrt(1.0+symengine.exp((-10.0-y(0)*1000.0)/6.0))
@@ -211,7 +193,9 @@ def Paci2018(time, tDrugApplication, INaFRedMed,
     L0           = 0.025   # dimensionless (in i_Kr_Xr1_gate)
     Q            = 2.3   # dimensionless (in i_Kr_Xr1_gate)
     g_Kr         = 29.8667   # S_per_F (in i_Kr)
-    i_Kr         = (sigmoid_generator(time, tDrugApplication, -1)*1+sigmoid_generator(time, tDrugApplication, 1)*IKrRedMed)*g_Kr*(y(0)-E_K)*y(8)*y(9)*sqrt(Ko/5.4)
+    drug_no_drug_Kr = [g_Kr*(y(0)-E_K)*y(8)*y(9)*sqrt(Ko/5.4),
+                       IKrRedMed*g_Kr*(y(0)-E_K)*y(8)*y(9)*sqrt(Ko/5.4)]
+    i_Kr =  drug_no_drug_Kr[0]
 
     V_half       = 1000.0*(-R*T/(F*Q)*log((1.0+Cao/2.6)**4.0/(L0*(1.0+Cao/0.58)**4.0))-0.019)
 
@@ -317,12 +301,12 @@ def Paci2018(time, tDrugApplication, INaFRedMed,
     stim_flag         = 0.0   # dimensionless (in stim_mode)
     i_stim_Period       = 60.0/i_stim_frequency
 
-    i_stim = (sigmoid_generator(time, i_stim_Start, 1) * sigmoid_generator(time, i_stim_End, -1) * (sigmoid_generator(time-i_stim_Start-symengine.floor((time-i_stim_Start)/i_stim_Period)*i_stim_Period, i_stim_PulseDuration, -1) ))*stim_flag*i_stim_Amplitude/Cm+0.0
+    i_stim = 0 #(sigmoid_generator(time, i_stim_Start, 1) * sigmoid_generator(time, i_stim_End, -1) * (sigmoid_generator(time-i_stim_Start-symengine.floor((time-i_stim_Start)/i_stim_Period)*i_stim_Period, i_stim_PulseDuration, -1) ))*stim_flag*i_stim_Amplitude/Cm+0.0
     
 
     ## Membrane potential
     dY[0] = -(i_K1+i_to+i_Kr+i_Ks+i_CaL+i_NaK+i_Na+i_NaL+i_NaCa+i_PCa+i_f+i_b_Na+i_b_Ca-i_stim)
-
+    
     ## Output variables
     IK1     = i_K1
     Ito     = i_to
@@ -353,5 +337,29 @@ def Paci2018(time, tDrugApplication, INaFRedMed,
 # 3 - during each loop, find dY/dt, given the perturbation
 # 4 - find the change in Y as a function of the change in the perturbation
 
+# Conditionals
+# tau_h   = 1.5*1.6947/1000.0
+# alpha_j = 0.0
+# beta_j  = ((0.6*exp((0.057)*Y[0]*1000)/(1+exp(-0.1*(Y[0]*1000+32)))))
+# constf1 = 1.0
+# constfCa = 1.0
+# RyRtauact = 0.1*18.75e-3   #s
+# RyRtauinact = 87.5e-3      #s
+# i_stim = 0.0
 
 
+    '''
+    Parameters from optimizer   
+      VmaxUp    = param(1)
+      g_irel_max  = param(2)
+      RyRa1         = param(3)
+      RyRa2         = param(4)
+      RyRahalf      = param(5)
+      RyRohalf      = param(6)
+      RyRchalf      = param(7)
+      kNaCa         = param(8)
+      PNaK          = param(9)
+      Kup     = param(10)
+      V_leak    = param(11)
+      alpha         = param(12)
+    '''

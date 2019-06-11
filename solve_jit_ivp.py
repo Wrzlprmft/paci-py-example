@@ -13,7 +13,7 @@ from jitcode import jitcode, y
 import pdb
 
 import os
-os.environ["CC"] = "gcc"
+os.environ["CC"] = "clang"
 
 
 Y_names = ['Vm', 'Ca_SR', 'Cai', 'g', 'd', 'f1', 'f2',
@@ -60,21 +60,33 @@ IKsRedMed = 1
 ## This variable holds my system of Eqs
 system_of_ODEs = wrapper()
 ODE = jitcode(system_of_ODEs)
-pdb.set_trace()
-ODE.set_integrator('vode', max_step=1e-3)
+# ODE.set_integrator('vode')
+# ODE.set_initial_value(Y0)
+ODE.set_integrator('dopri5')
 ODE.set_initial_value(Y0)
+times = np.arange(0, 30, .001)
+data = np.zeros((len(times),23))
+i = 0
+for t in times:
+  data[i,:] = ODE.integrate(t)
+  i+=1
+  print(i)
 
-output = StringIO()
-csv_writer = writer(output)
-tf = 10
-
-
-print("hello")
-# Don't know how to implement this
 pdb.set_trace()
-while ODE.successful() and ODE.t < tf:
-    ODE.integrate(tf, step=True)
-    csv_writer.writerow([ODE.t, ODE.y])
+# ODE.generate_jac_sym(simplify=False)
+# ODE.generate_jac_C()
+# ODE.set_integrator('vode', max_step=1e-3)
+# ODE.set_initial_value(Y0)
+tf = 1
 
-output.seek(0)
-sol = pd.read_csv(output)
+# For the 
+
+print("hey")
+
+pdb.set_trace()
+
+
+# output = StringIO()
+# csv_writer = writer(output)
+# output.seek(0)
+# sol = pd.read_csv(output)
