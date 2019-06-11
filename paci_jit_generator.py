@@ -18,9 +18,8 @@ def wrapper():
 
 
 def sigmoid_generator(t_step, shift, sign):
-    # y = sign*1/(1+symengine.exp(-(t_step-shift)*50))
-    # return y
-    return 1
+    y = sign*1/(1+symengine.exp(-(t_step-shift)*50))
+    return y
 
 def Paci2018(tDrugApplication, INaFRedMed,
              ICaLRedMed, IKrRedMed, IKsRedMed):
