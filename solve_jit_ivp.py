@@ -49,43 +49,17 @@ Y0 = [-0.0749228904740065, 0.0936532528714175, 3.79675694306440e-05,
               0.00225383437957339, 0.0811507312565017, 0.0387066722172937,
               0.0260449185736275, 0.0785849084330126]
 
-# Current blockers
-tDrugApplication = 10000
-INaFRedMed = 1
-ICaLRedMed = 1
-IKrRedMed = 1
-IKsRedMed = 1
-
-
 ## This variable holds my system of Eqs
 system_of_ODEs = wrapper()
 ODE = jitcode(system_of_ODEs)
-# ODE.set_integrator('vode')
-# ODE.set_initial_value(Y0)
-ODE.set_integrator('dopri5')
-ODE.set_initial_value(Y0)
-times = np.arange(0, 30, .001)
-data = np.zeros((len(times),23))
-i = 0
-for t in times:
-  data[i,:] = ODE.integrate(t)
-  i+=1
-  print(i)
 
 ODE.generate_jac_sym(simplify=False)
 ODE.generate_jac_C()
 ODE.set_integrator('vode', max_step=1e-3)
 ODE.set_initial_value(Y0)
-tf = 1
 
-# For the 
+ODE.integrate()
 
 print("hey")
 
 pdb.set_trace()
-
-
-# output = StringIO()
-# csv_writer = writer(output)
-# output.seek(0)
-# sol = pd.read_csv(output)
