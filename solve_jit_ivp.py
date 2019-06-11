@@ -68,6 +68,7 @@ data = np.zeros((len(times),23))
 i = 0
 for t in times:
   data[i,:] = ODE.integrate(t)
+  print(i)
   i+=1
 
 print("hey")
