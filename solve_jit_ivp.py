@@ -58,7 +58,13 @@ ODE.generate_jac_C()
 ODE.set_integrator('vode', max_step=1e-3)
 ODE.set_initial_value(Y0)
 
-ODE.integrate()
+tf = 1
+
+try:
+  ODE.integrate(tf)
+except:
+  print(ODE.t)
+  pdb.set_trace()
 
 print("hey")
 
