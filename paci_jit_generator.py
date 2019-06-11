@@ -18,7 +18,7 @@ def wrapper():
 
 
 def sigmoid_generator(t_step, shift, sign):
-    y = sign*1/(1+symengine.exp(-(t_step-shift)*100))
+    y = sign*1/(1+symengine.exp(-(t_step-shift)*40))
     return y
     # return 1
 
