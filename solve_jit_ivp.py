@@ -72,11 +72,10 @@ for t in times:
   i+=1
   print(i)
 
-pdb.set_trace()
-# ODE.generate_jac_sym(simplify=False)
-# ODE.generate_jac_C()
-# ODE.set_integrator('vode', max_step=1e-3)
-# ODE.set_initial_value(Y0)
+ODE.generate_jac_sym(simplify=False)
+ODE.generate_jac_C()
+ODE.set_integrator('vode', max_step=1e-3)
+ODE.set_initial_value(Y0)
 tf = 1
 
 # For the 
