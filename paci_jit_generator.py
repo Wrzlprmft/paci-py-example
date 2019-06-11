@@ -1,8 +1,7 @@
-from math import log, sqrt, floor
+import math
 import numpy as np
 from jitcode import jitcode, y
 import symengine
-import mpmath
 
 def wrapper():
     tDrugApplication = 10000
@@ -25,7 +24,23 @@ def sigmoid_generator(t_step, shift, sign):
 def Paci2018(tDrugApplication, INaFRedMed,
              ICaLRedMed, IKrRedMed, IKsRedMed):
     dY = [None]*23
-    
+
+    time = 1
+    '''
+    Parameters from optimizer   
+      VmaxUp    = param(1)
+      g_irel_max  = param(2)
+      RyRa1         = param(3)
+      RyRa2         = param(4)
+      RyRahalf      = param(5)
+      RyRohalf      = param(6)
+      RyRchalf      = param(7)
+      kNaCa         = param(8)
+      PNaK          = param(9)
+      Kup     = param(10)
+      V_leak    = param(11)
+      alpha         = param(12)
+    '''
     VmaxUp = 0.5113      # millimolar_per_second (in calcium_dynamics)
     g_irel_max = 62.5434 # millimolar_per_second (in calcium_dynamics)
     RyRa1 = 0.05354      # uM
@@ -66,29 +81,27 @@ def Paci2018(tDrugApplication, INaFRedMed,
     E_Na = R*T/F*symengine.log(Nao/y(17))
     E_Ca = 0.5*R*T/F*symengine.log(Cao/y(2))
 
-    E_K  = R*T/F*log(Ko/Ki)
+    E_K  = R*T/F*math.log(Ko/Ki)
     PkNa = 0.03   # dimensionless (in electric_potentials)
     E_Ks = R*T/F*symengine.log((Ko+PkNa*Nao)/(Ki+PkNa*y(17)))
 
 
     ## INa
     g_Na        = 3671.2302   # S_per_F (in i_Na)
-    drug_no_drug_na = [g_Na*y(13)**3.0*y(11)*y(12)*(y(0)-E_Na), INaFRedMed * g_Na*y(13)**3.0*y(11)*y(12)*(y(0)-E_Na)]
-    i_Na        = drug_no_drug_na[0]
-    
+    i_Na        = ((time<tDrugApplication)*1+(time >= tDrugApplication)*INaFRedMed)*g_Na*y(13)**3.0*y(11)*y(12)*(y(0)-E_Na)
+
     h_inf       = 1.0/symengine.sqrt(1.0+symengine.exp((y(0)*1000.0+72.1)/5.7))
     alpha_h     = 0.057*symengine.exp(-(y(0)*1000.0+80.0)/6.8)
     beta_h      = 2.7*symengine.exp(0.079*y(0)*1000.0)+3.1*10.0**5.0*symengine.exp(0.3485*y(0)*1000.0)
     
-    tau_h = sigmoid_generator(y(0), -0.0385, -1)*(1.5/((alpha_h+beta_h)*1000.0)) + sigmoid_generator(y(0), -0.0385, 1)*(1.5*1.6947/1000.0)
-
+    tau_h = (y(0) < -0.0385)*(1.5/((alpha_h+beta_h)*1000.0)) + (y(0) >= -0.0385)*(1.5*1.6947/1000.0)
 
     dY[11]   = (h_inf-y(11))/tau_h
 
     j_inf       = 1.0/symengine.sqrt(1.0+symengine.exp((y(0)*1000.0+72.1)/5.7))
-    alpha_j = sigmoid_generator(y(0), -0.04, -1)*(-25428.0*symengine.exp(0.2444*y(0)*1000.0)-6.948*10.0**-6.0*symengine.exp(-0.04391*y(0)*1000.0))*(y(0)*1000.0+37.78)/(1.0+symengine.exp(0.311*(y(0)*1000.0+79.23))) + sigmoid_generator(y(0), -0.04, 1)*0
+    alpha_j = (y(0) < -0.04)*(-25428.0*symengine.exp(0.2444*y(0)*1000.0)-6.948*10.0**-6.0*symengine.exp(-0.04391*y(0)*1000.0))*(y(0)*1000.0+37.78)/(1.0+symengine.exp(0.311*(y(0)*1000.0+79.23))) + (y(0) >= -0.04)*0
     
-    beta_j  = sigmoid_generator(y(0), -0.04, -1)*((0.02424*symengine.exp(-0.01052*y(0)*1000)/(1+symengine.exp(-0.1378*(y(0)*1000+40.14)))))+sigmoid_generator(y(0), -0.04, 1)*((0.6*symengine.exp((0.057)*y(0)*1000)/(1+symengine.exp(-0.1*(y(0)*1000+32)))))
+    beta_j  = (y(0) < -0.04)*((0.02424*symengine.exp(-0.01052*y(0)*1000)/(1+symengine.exp(-0.1378*(y(0)*1000+40.14)))))+(y(0) >= -0.04)*((0.6*symengine.exp((0.057)*y(0)*1000)/(1+symengine.exp(-0.1*(y(0)*1000+32)))))
     
     tau_j       = 7.0/((alpha_j+beta_j)*1000.0)
     dY[12]   = (j_inf-y(12))/tau_j
@@ -134,9 +147,7 @@ def Paci2018(tDrugApplication, INaFRedMed,
 
     ## ICaL
     g_CaL       = 8.635702e-5   # metre_cube_per_F_per_s (in i_CaL)
-    drug_no_drug_CaL       = [g_CaL*4.0*y(0)*F**2.0/(R*T)*(y(2)*symengine.exp(2.0*y(0)*F/(R*T))-0.341*Cao)/(symengine.exp(2.0*y(0)*F/(R*T))-1.0)*y(4)*y(5)*y(6)*y(7),
-                   ICaLRedMed * g_CaL*4.0*y(0)*F**2.0/(R*T)*(y(2)*symengine.exp(2.0*y(0)*F/(R*T))-0.341*Cao)/(symengine.exp(2.0*y(0)*F/(R*T))-1.0)*y(4)*y(5)*y(6)*y(7)]
-    i_CaL = drug_no_drug_CaL[0]
+    i_CaL       = ((time<tDrugApplication)*1+(time >= tDrugApplication)*ICaLRedMed)*g_CaL*4.0*y(0)*F**2.0/(R*T)*(y(2)*symengine.exp(2.0*y(0)*F/(R*T))-0.341*Cao)/(symengine.exp(2.0*y(0)*F/(R*T))-1.0)*y(4)*y(5)*y(6)*y(7)
 
     d_infinity  = 1.0/(1.0+symengine.exp(-(y(0)*1000.0+9.1)/7.0))
     alpha_d     = 0.25+1.4/(1.0+symengine.exp((-y(0)*1000.0-35.0)/13.0))
@@ -146,7 +157,7 @@ def Paci2018(tDrugApplication, INaFRedMed,
     dY[4]    = (d_infinity-y(4))/tau_d
 
     f1_inf      = 1.0/(1.0+symengine.exp((y(0)*1000.0+26.0)/3.0))
-    constf1 = sigmoid_generator(f1_inf-y(5), 0, 1)*1.0+1433.0*(y(2)-50.0*1.0e-6)+sigmoid_generator(f1_inf-y(5), 0, -1)* 1.0
+    constf1 = (f1_inf-y(5) > 0.0)*1.0+1433.0*(y(2)-50.0*1.0e-6)+(f1_inf-y(5) <= 0.0)* 1.0
     
     tau_f1      = (20.0+1102.5*symengine.exp(-((y(0)*1000.0+27.0)**2.0/15.0)**2.0)+200.0/(1.0+symengine.exp((13.0-y(0)*1000.0)/10.0))+180.0/(1.0+symengine.exp((30.0+y(0)*1000.0)/10.0)))*constf1/1000.0
     dY[5]    = (f1_inf-y(5))/tau_f1
@@ -160,7 +171,7 @@ def Paci2018(tDrugApplication, INaFRedMed,
     beta_fCa    = 0.1/(1.0+symengine.exp((y(2)-0.0009)/0.0001))
     gamma_fCa   = 0.3/(1.0+symengine.exp((y(2)-0.00075)/0.0008))
     fCa_inf     = (alpha_fCa+beta_fCa+gamma_fCa)/1.3156
-    constfCa = sigmoid_generator(y(0), -0.06, 1) * sigmoid_generator(fCa_inf, y(7), 1)*0+(sigmoid_generator(y(0), -0.06, -1) + sigmoid_generator(fCa_inf, y(7), -1))*1.0
+    constfCa = ((y(0) > -0.06) and (fCa_inf > y(7)))*0+((y(0) <= -0.06) or (fCa_inf <= y(7)))*1.0
     
     tau_fCa     = 0.002   # second (in i_CaL_fCa_gate)
     dY[7]    = constfCa*(fCa_inf-y(7))/tau_fCa
@@ -179,9 +190,7 @@ def Paci2018(tDrugApplication, INaFRedMed,
 
     ## IKs
     g_Ks        = 2.041   # S_per_F (in i_Ks)
-    drug_no_drug_Ks = [g_Ks*(y(0)-E_Ks)*y(10)**2.0*(1.0+0.6/(1.0+(3.8*0.00001/y(2))**1.4)),
-                       IKsRedMed*g_Ks*(y(0)-E_Ks)*y(10)**2.0*(1.0+0.6/(1.0+(3.8*0.00001/y(2))**1.4))]
-    i_Ks = drug_no_drug_Ks[0]
+    i_Ks        = ((time<tDrugApplication)*1+(time >= tDrugApplication)*IKsRedMed)*g_Ks*(y(0)-E_Ks)*y(10)**2.0*(1.0+0.6/(1.0+(3.8*0.00001/y(2))**1.4))
 
     Xs_infinity = 1.0/(1.0+symengine.exp((-y(0)*1000.0-20.0)/16.0))
     alpha_Xs    = 1100.0/symengine.sqrt(1.0+symengine.exp((-10.0-y(0)*1000.0)/6.0))
@@ -193,11 +202,9 @@ def Paci2018(tDrugApplication, INaFRedMed,
     L0           = 0.025   # dimensionless (in i_Kr_Xr1_gate)
     Q            = 2.3   # dimensionless (in i_Kr_Xr1_gate)
     g_Kr         = 29.8667   # S_per_F (in i_Kr)
-    drug_no_drug_Kr = [g_Kr*(y(0)-E_K)*y(8)*y(9)*sqrt(Ko/5.4),
-                       IKrRedMed*g_Kr*(y(0)-E_K)*y(8)*y(9)*sqrt(Ko/5.4)]
-    i_Kr =  drug_no_drug_Kr[0]
+    i_Kr         = ((time<tDrugApplication)*1+(time >= tDrugApplication)*IKrRedMed)*g_Kr*(y(0)-E_K)*y(8)*y(9)*math.sqrt(Ko/5.4)
 
-    V_half       = 1000.0*(-R*T/(F*Q)*log((1.0+Cao/2.6)**4.0/(L0*(1.0+Cao/0.58)**4.0))-0.019)
+    V_half       = 1000.0*(-R*T/(F*Q)*math.log((1.0+Cao/2.6)**4.0/(L0*(1.0+Cao/0.58)**4.0))-0.019)
 
     Xr1_inf      = 1.0/(1.0+symengine.exp((V_half-y(0)*1000.0)/4.9))
     alpha_Xr1    = 450.0/(1.0+symengine.exp((-45.0-y(0)*1000.0)/10.0))
@@ -216,7 +223,7 @@ def Paci2018(tDrugApplication, INaFRedMed,
     beta_K1  = (-1.509*symengine.exp(0.0002*(y(0)*1000.0-E_K*1000.0+100.0))+symengine.exp(0.5886*(y(0)*1000.0-E_K*1000.0-10.0)))/(1.0+symengine.exp(0.4547*(y(0)*1000.0-E_K*1000.0)))
     XK1_inf  = alpha_K1/(alpha_K1+beta_K1)
     g_K1     = 28.1492   # S_per_F (in i_K1)
-    i_K1     = g_K1*XK1_inf*(y(0)-E_K)*sqrt(Ko/5.4)
+    i_K1     = g_K1*XK1_inf*(y(0)-E_K)*math.sqrt(Ko/5.4)
 
     ## INaCa
     KmCa   = 1.38   # millimolar (in i_NaCa)
@@ -266,13 +273,13 @@ def Paci2018(tDrugApplication, INaFRedMed,
     dY[20] = (RyRainfss- y(20))/RyRtauadapt
 
     RyRoinfss = (1 - 1/(1 +  symengine.exp((1000*y(2)-(y(20)+ RyRohalf))/0.003)))
-    RyRtauact = sigmoid_generator(RyRoinfss, y(21), 1)*18.75e-3 + 0.1*18.75e-3*sigmoid_generator(RyRoinfss, y(21), -1)
+    RyRtauact = (RyRoinfss>= y(21))*18.75e-3 + 0.1*18.75e-3*(RyRoinfss< y(21))
     
     dY[21] = (RyRoinfss- y(21))/RyRtauact
 
     RyRcinfss = (1/(1 + symengine.exp((1000*y(2)-(y(20)+RyRchalf))/0.001)))
     
-    RyRtauinact = sigmoid_generator(RyRcinfss, y(22), 1)*2*87.5e-3+sigmoid_generator(RyRcinfss, y(22), -1)*87.5e-3
+    RyRtauinact = (RyRcinfss >= y(22))*2*87.5e-3+(RyRcinfss < y(22))*87.5e-3
     
     dY[22] = (RyRcinfss- y(22))/RyRtauinact
     
@@ -301,12 +308,12 @@ def Paci2018(tDrugApplication, INaFRedMed,
     stim_flag         = 0.0   # dimensionless (in stim_mode)
     i_stim_Period       = 60.0/i_stim_frequency
 
-    i_stim = 0 #(sigmoid_generator(time, i_stim_Start, 1) * sigmoid_generator(time, i_stim_End, -1) * (sigmoid_generator(time-i_stim_Start-symengine.floor((time-i_stim_Start)/i_stim_Period)*i_stim_Period, i_stim_PulseDuration, -1) ))*stim_flag*i_stim_Amplitude/Cm+0.0
+    i_stim = ((time >= i_stim_Start) and (time <= i_stim_End) and (time-i_stim_Start-math.floor((time-i_stim_Start)/i_stim_Period)*i_stim_Period <= i_stim_PulseDuration))*stim_flag*i_stim_Amplitude/Cm+0.0
     
 
     ## Membrane potential
     dY[0] = -(i_K1+i_to+i_Kr+i_Ks+i_CaL+i_NaK+i_Na+i_NaL+i_NaCa+i_PCa+i_f+i_b_Na+i_b_Ca-i_stim)
-    
+
     ## Output variables
     IK1     = i_K1
     Ito     = i_to
@@ -347,19 +354,3 @@ def Paci2018(tDrugApplication, INaFRedMed,
 # RyRtauinact = 87.5e-3      #s
 # i_stim = 0.0
 
-
-    '''
-    Parameters from optimizer   
-      VmaxUp    = param(1)
-      g_irel_max  = param(2)
-      RyRa1         = param(3)
-      RyRa2         = param(4)
-      RyRahalf      = param(5)
-      RyRohalf      = param(6)
-      RyRchalf      = param(7)
-      kNaCa         = param(8)
-      PNaK          = param(9)
-      Kup     = param(10)
-      V_leak    = param(11)
-      alpha         = param(12)
-    '''

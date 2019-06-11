@@ -60,33 +60,16 @@ IKsRedMed = 1
 ## This variable holds my system of Eqs
 system_of_ODEs = wrapper()
 ODE = jitcode(system_of_ODEs)
-# ODE.set_integrator('vode')
-# ODE.set_initial_value(Y0)
+
 ODE.set_integrator('dopri5')
 ODE.set_initial_value(Y0)
+
 times = np.arange(0, 30, .001)
 data = np.zeros((len(times),23))
 i = 0
 for t in times:
   data[i,:] = ODE.integrate(t)
   i+=1
-  print(i)
 
-pdb.set_trace()
-# ODE.generate_jac_sym(simplify=False)
-# ODE.generate_jac_C()
-# ODE.set_integrator('vode', max_step=1e-3)
-# ODE.set_initial_value(Y0)
-tf = 1
-
-# For the 
-
-print("hey")
-
-pdb.set_trace()
-
-
-# output = StringIO()
-# csv_writer = writer(output)
-# output.seek(0)
-# sol = pd.read_csv(output)
+plt.plot(times, data[:,0])
+plt.show()
